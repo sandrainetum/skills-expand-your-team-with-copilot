@@ -6,14 +6,18 @@
   const canvas = document.getElementById("git-branches-canvas");
   const ctx = canvas.getContext("2d");
 
-  // School colors: lime green palette
-  const COLORS = [
-    "rgba(76, 175, 80, 0.35)",
-    "rgba(128, 226, 126, 0.3)",
-    "rgba(8, 127, 35, 0.25)",
-    "rgba(46, 125, 50, 0.3)",
-    "rgba(165, 214, 167, 0.35)",
+  // School colors: lime green palette (RGB values for flexible opacity control)
+  const COLORS_RGB = [
+    [76, 175, 80],
+    [128, 226, 126],
+    [8, 127, 35],
+    [46, 125, 50],
+    [165, 214, 167],
   ];
+
+  function rgba(rgb, alpha) {
+    return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+  }
 
   // How many branch "lanes" (columns) to draw
   const LANE_COUNT = 6;
@@ -22,11 +26,17 @@
 
   let width, height;
   let lanes = [];
+  let resizeTimer = null;
 
   function resizeCanvas() {
     width = canvas.width = window.innerWidth;
     height = canvas.height = window.innerHeight;
     initLanes();
+  }
+
+  function onResize() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resizeCanvas, 150);
   }
 
   /**
@@ -39,7 +49,7 @@
 
     for (let i = 0; i < LANE_COUNT; i++) {
       const x = laneWidth * (i + 1);
-      const color = COLORS[i % COLORS.length];
+      const rgb = COLORS_RGB[i % COLORS_RGB.length];
       const nodes = [];
 
       // Spread nodes vertically across the canvas, including above/below viewport
@@ -56,7 +66,7 @@
         y += spacing + Math.random() * 60;
       }
 
-      lanes.push({ x, color, nodes, speed: SPEED * (0.7 + Math.random() * 0.6) });
+      lanes.push({ x, rgb, nodes, speed: SPEED * (0.7 + Math.random() * 0.6) });
     }
   }
 
@@ -75,7 +85,7 @@
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
-        ctx.strokeStyle = lane.color;
+        ctx.strokeStyle = rgba(lane.rgb, 0.35);
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
@@ -96,7 +106,7 @@
             targetNode.x, targetNode.y - 40,
             targetNode.x, targetNode.y
           );
-          ctx.strokeStyle = lane.color;
+          ctx.strokeStyle = rgba(lane.rgb, 0.25);
           ctx.lineWidth = 1.2;
           ctx.setLineDash([4, 4]);
           ctx.stroke();
@@ -108,9 +118,9 @@
       for (const node of nodes) {
         ctx.beginPath();
         ctx.arc(node.x, node.y, NODE_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = lane.color.replace(/[\d.]+\)$/, `${node.opacity})`);
+        ctx.fillStyle = rgba(lane.rgb, node.opacity * 0.5);
         ctx.fill();
-        ctx.strokeStyle = lane.color;
+        ctx.strokeStyle = rgba(lane.rgb, node.opacity);
         ctx.lineWidth = 1;
         ctx.stroke();
       }
@@ -141,7 +151,7 @@
     requestAnimationFrame(loop);
   }
 
-  window.addEventListener("resize", resizeCanvas);
+  window.addEventListener("resize", onResize);
   resizeCanvas();
   loop();
 })();
